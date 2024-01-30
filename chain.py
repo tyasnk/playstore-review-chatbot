@@ -98,7 +98,7 @@ def get_retrieval_qa_chain():
     llm = ChatOllama(model="mistral")
     db = FAISS.load_local("faiss_index", embeddings)
 
-    retriever = db.as_retriever(search_kwargs={"k": 100})
+    retriever = db.as_retriever(search_kwargs={"k": 400})
 
     output_parser = StrOutputParser()
 

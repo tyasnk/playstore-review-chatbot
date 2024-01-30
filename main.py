@@ -33,7 +33,7 @@ def main():
             full_response = ""
 
             for response in chain.stream(
-                {"question": prompt, "chat_history": st.session_state.chat_history}
+                {"question": prompt, "chat_history": st.session_state.chat_history[-5:]}
             ):
                 full_response += response or ""
                 message_placeholder.markdown(full_response + "▌")
