@@ -11,7 +11,7 @@ def sampler(path_str: str):
     df = preprocess(df)
 
     df_sampled = df.groupby("review_rating", group_keys=False).apply(
-        lambda x: x.sample(frac=0.0001, random_state=2024)
+        lambda x: x.sample(frac=0.00005, random_state=2024)
     )
     df_sampled.to_csv(f"SPOTIFY_REVIEWS_SAMPLE.csv", header=True, index=False)
 

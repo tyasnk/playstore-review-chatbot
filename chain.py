@@ -11,6 +11,7 @@ from langchain_core.runnables import (
     RunnableBranch,
     RunnableLambda,
     RunnableMap,
+    RunnablePassthrough
 )
 from langchain.schema import Document
 from langchain.schema.messages import AIMessage, HumanMessage
@@ -51,7 +52,7 @@ def get_chain():
     Simple chain with reviews data used directly in prompt
 
     """
-    llm = ChatOllama(model="mistral", temperature=0.1)
+    llm = ChatOllama(model="mistral", temperature=0)
 
     df = pd.read_csv("SPOTIFY_REVIEWS_SAMPLE.csv")
     df = df[
@@ -78,7 +79,6 @@ def get_chain():
 
     All questions must be supported by facts in the context
     All reasoning must be done step by step.
-    Explain the reasoning.
 
     """
 
@@ -91,14 +91,14 @@ def get_chain():
 
 def get_retrieval_qa_chain():
     """
-    Use RAG with Faiss to get context from embedded document
+    Use RAG with Faiss with chat history
 
     """
-    embeddings = OllamaEmbeddings(model="mistral")
+    embeddings = OllamaEmbeddings(model="mistral", temperature=0)
     llm = ChatOllama(model="mistral")
     db = FAISS.load_local("faiss_index", embeddings)
 
-    retriever = db.as_retriever(search_kwargs={"k": 400})
+    retriever = db.as_retriever(search_kwargs={"k": 200})
 
     output_parser = StrOutputParser()
 
@@ -113,8 +113,6 @@ def get_retrieval_qa_chain():
 
     All questions must be supported by facts in the context
     All reasoning must be done step by step.
-    Explain the reasoning.
-    When looking at multiple rows, explain the reasoning for each row one by one.
 
     Question: {question}
     """
@@ -169,4 +167,6 @@ def get_retrieval_qa_chain():
     )
 
 # TODO:
-# 1. The solution above has limitation on prompt context length. For large data we need to try another approach such as using agents or function calling so we can process the whole dataset
+# 1. The solution above has limitation on prompt context length so it decrease the accuracy. For large data, we need to try another approach such as using agents or function calling so we can process the whole dataset
+# 2. We use mistral:7b which is free and open source llm so the accuracy is not so well. We need to try using gpt3.5 or gpt4 (but i have no money :( )
+# 3. Need to try to improve the prompt for better accuracy
