@@ -167,3 +167,6 @@ def get_retrieval_qa_chain():
         | _context
         | response_synthesizer
     )
+
+# TODO:
+# 1. The solution above has limitation on prompt context length. For large data we need to try another approach such as using agents or function calling so we can process the whole dataset
