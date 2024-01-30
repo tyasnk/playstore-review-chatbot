@@ -17,9 +17,10 @@ def ingest(path_str: str):
 
     loader = DataFrameLoader(df, page_content_column="table_to_text")
     documents = loader.load()
-    
+
     db = FAISS.from_documents(documents, embedding)
     db.save_local("faiss_index")
+
 
 if __name__ == "__main__":
     ingest("SPOTIFY_REVIEWS_SAMPLE.csv")
