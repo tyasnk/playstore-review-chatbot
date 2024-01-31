@@ -94,8 +94,8 @@ def get_retrieval_qa_chain():
     Use RAG with Faiss with chat history
 
     """
-    embeddings = OllamaEmbeddings(model="mistral", temperature=0)
-    llm = ChatOllama(model="mistral")
+    embeddings = OllamaEmbeddings(model="mistral")
+    llm = ChatOllama(model="mistral", temperature=0)
     db = FAISS.load_local("faiss_index", embeddings)
 
     retriever = db.as_retriever(search_kwargs={"k": 200})
