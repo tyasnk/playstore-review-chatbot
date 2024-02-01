@@ -10,33 +10,28 @@ from langchain_community.embeddings import OllamaEmbeddings
 from langchain_core.runnables import (
     RunnableBranch,
     RunnableLambda,
-    RunnableMap,
-    RunnablePassthrough
+    RunnableParallel,
 )
 from langchain.schema import Document
 from langchain.schema.messages import AIMessage, HumanMessage
 
 import pandas as pd
-import os
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Sequence
+
+from typing import Sequence
 from operator import itemgetter
-
-
-class ChatRequest(BaseModel):
-    question: str
-    chat_history: Optional[List[Dict[str, str]]]
 
 
 def format_docs(docs: Sequence[Document]) -> str:
     formatted_docs = []
-    for i, doc in enumerate(docs):
-        doc_string = f"<doc id='{i}'>{doc.page_content}</doc>"
+    for doc in docs:
+        doc_string = (
+            f"<doc id='{doc.metadata.get('review_id')}'>{doc.page_content}</doc>"
+        )
         formatted_docs.append(doc_string)
     return "\n".join(formatted_docs)
 
 
-def serialize_history(request: ChatRequest):
+def serialize_history(request):
     chat_history = request["chat_history"] or []
     converted_chat_history = []
     for message in chat_history:
@@ -95,7 +90,7 @@ def get_retrieval_qa_chain():
 
     """
     embeddings = OllamaEmbeddings(model="mistral")
-    llm = ChatOllama(model="mistral", temperature=0)
+    llm = ChatOllama(model="mistral:instruct", temperature=0)
     db = FAISS.load_local("faiss_index", embeddings)
 
     retriever = db.as_retriever(search_kwargs={"k": 200})
@@ -113,8 +108,6 @@ def get_retrieval_qa_chain():
 
     All questions must be supported by facts in the context
     All reasoning must be done step by step.
-
-    Question: {question}
     """
 
     REPHRASE_TEMPLATE = """\
@@ -131,16 +124,16 @@ def get_retrieval_qa_chain():
 
     CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(REPHRASE_TEMPLATE)
     condense_question_chain = CONDENSE_QUESTION_PROMPT | llm | output_parser
-    conversation_chain = condense_question_chain | retriever
+
     retriever_chain = RunnableBranch(
         (
             RunnableLambda(lambda x: bool(x.get("chat_history"))),
-            conversation_chain,
+            condense_question_chain | retriever,
         ),
         (RunnableLambda(itemgetter("question")) | retriever),
     )
 
-    _context = RunnableMap(
+    context = RunnableParallel(
         {
             "context": retriever_chain | format_docs,
             "question": itemgetter("question"),
@@ -156,15 +149,17 @@ def get_retrieval_qa_chain():
         ]
     )
 
-    response_synthesizer = prompt | llm | output_parser
     return (
         {
             "question": RunnableLambda(itemgetter("question")),
             "chat_history": RunnableLambda(serialize_history),
         }
-        | _context
-        | response_synthesizer
+        | context
+        | prompt
+        | llm
+        | output_parser
     )
+
 
 # TODO:
 # 1. The solution above has limitation on prompt context length so it decrease the accuracy. For large data, we need to try another approach such as using agents or function calling so we can process the whole dataset

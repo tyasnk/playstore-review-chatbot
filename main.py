@@ -1,5 +1,4 @@
 from chain import get_chain, get_retrieval_qa_chain
-from langchain.schema.messages import AIMessage, HumanMessage
 
 import streamlit as st
 
